@@ -487,6 +487,7 @@ module Bosh::Director
 
       let(:new_manifest_hash) do
         {
+          'releases' => [],
           'properties' => {
             'something' => 'worth-redacting'
           },
@@ -504,7 +505,7 @@ module Bosh::Director
       let(:new_cloud_config_hash) { cloud_config_hash }
       let(:new_runtime_config_hash) { runtime_config_hash }
       let(:diff) do
-        manifest_object.diff(new_manifest_object, redact).map(&:text).join("\n")
+        manifest_object.diff(new_manifest_object, redact, []).map(&:text).join("\n")
       end
 
       context 'when called' do
@@ -516,9 +517,9 @@ module Bosh::Director
           expect(Bosh::Director::Changeset).to receive(:new).and_return(mock_changeset)
           expect(mock_changeset).to receive(:diff).with(true).and_return(diff_return)
           expect(diff_return).to receive(:order)
-          expect(manifest_object).to receive(:to_hash).and_return({})
-          expect(new_manifest_object).to receive(:to_hash).and_return({})
-          manifest_object.diff(new_manifest_object, redact)
+          expect(manifest_object).to receive(:to_hash_filter_addons).and_return({})
+          expect(new_manifest_object).to receive(:to_hash_filter_addons).and_return({})
+          manifest_object.diff(new_manifest_object, redact, [])
         end
       end
 
@@ -583,6 +584,42 @@ module Bosh::Director
                                                          'properties' => {
                                                            'test' => '((test_placeholder))'
                                                          })
+      end
+
+      context 'when runtime config contains an addon that is not applicable to the deployment' do
+        let(:manifest_hash) do
+          {
+            'name' => 'test_deployment',
+            'releases' => [
+              { 'name' => 'simple', 'version' => '2' }
+            ],
+          }
+        end
+
+        let(:runtime_config_hash) do
+          {
+            'releases' => [
+              { 'name' => 'runtime_release', 'version' => '2' }
+            ],
+            'addons' => [
+              {
+                'name' => 'test',
+                'exclude' => {
+                  'deployments' => ['test_deployment']
+                },
+                'jobs' => [{
+                  'name' => 'addon_job',
+                  'release' => 'runtime_release'
+                }]
+              }
+            ]
+          }
+        end
+
+        it 'returns the merged hashes without the addon and release' do
+          expect(manifest_object.to_hash_filter_addons([])).to eq(manifest_hash)
+        end
+
       end
 
       context 'when runtime config contains same release/version or variables as deployment manifest' do
