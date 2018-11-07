@@ -53,19 +53,17 @@ module Bosh::Director
     end
 
     def filter_addons(runtime_manifest, deployment)
-      if !deployment.has_releases? || runtime_manifest == {}
-        return deployment.manifest_hash
-      end
+      return deployment.manifest_hash if runtime_manifest == {} || !runtime_manifest.key?('releases')
 
       filtered_runtime_manifest = Bosh::Common::DeepCopy.copy(runtime_manifest)
       runtime_manifest_parser = Bosh::Director::RuntimeConfig::RuntimeManifestParser.new(Config.logger)
       parsed_runtime_config = runtime_manifest_parser.parse(runtime_manifest)
 
       applicable_releases = parsed_runtime_config.get_applicable_releases(deployment)
-      filtered_runtime_manifest["releases"] = filter_releases_array(filtered_runtime_manifest["releases"], applicable_releases)
+      filtered_runtime_manifest['releases'] = filter_releases_array(filtered_runtime_manifest['releases'], applicable_releases)
 
       applicable_addons = parsed_runtime_config.get_applicable_addons(deployment)
-      filtered_runtime_manifest["addons"] = filter_addons_array(filtered_runtime_manifest["addons"], applicable_addons)
+      filtered_runtime_manifest['addons'] = filter_addons_array(filtered_runtime_manifest['addons'], applicable_addons)
 
       filtered_runtime_manifest.compact
     end
@@ -74,16 +72,16 @@ module Bosh::Director
       return nil unless addons && applicable_addons
 
       filtered_addons = addons.select do |addon|
-        applicable_addons.any?{|applicable_addon|applicable_addon["name"] == addon["name"]}
+        applicable_addons.any? { |applicable_addon| applicable_addon.name == addon['name'] }
       end
-      nil if filtered_addons.empty?
+      filtered_addons.empty? ? nil : filtered_addons
     end
 
     def filter_releases_array(releases, applicable_releases)
       return [] unless releases && applicable_releases
 
       releases.select do |release|
-        applicable_releases.any?{|applicable_release|applicable_release["name"] == release["name"]}
+        applicable_releases.any? { |applicable_release| applicable_release.name == release['name'] }
       end
     end
 

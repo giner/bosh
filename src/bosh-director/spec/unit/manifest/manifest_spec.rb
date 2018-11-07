@@ -586,12 +586,54 @@ module Bosh::Director
                                                          })
       end
 
+      context 'when deployment manifest has no releases' do
+        let(:manifest_hash) do
+          {
+            'name' => 'test_deployment',
+            'instance_groups' => [
+              {
+                'name' => 'test_instance_group',
+                'jobs' => [],
+              },
+            ],
+          }
+        end
+        let(:runtime_config_hash) do
+          {
+            'releases' => [
+              { 'name' => 'runtime_release', 'version' => '2' },
+            ],
+            'addons' => [
+              {
+                'name' => 'test',
+                'jobs' => [{
+                  'name' => 'addon_job',
+                  'release' => 'runtime_release',
+                }],
+              },
+            ],
+          }
+        end
+
+        it 'returns manifest with addon and release' do
+          filtered_manifest = manifest_object.to_hash_filter_addons([])
+          expect(filtered_manifest['releases']).to eq(runtime_config_hash['releases'])
+          expect(filtered_manifest['addons']).to eq(runtime_config_hash['addons'])
+        end
+      end
+
       context 'when runtime config contains an addon that is not applicable to the deployment' do
         let(:manifest_hash) do
           {
             'name' => 'test_deployment',
             'releases' => [
-              { 'name' => 'simple', 'version' => '2' }
+              { 'name' => 'simple', 'version' => '2' },
+            ],
+            'instance_groups' => [
+              {
+                'name' => 'test_instance_group',
+                'jobs' => [],
+              },
             ],
           }
         end
@@ -599,20 +641,20 @@ module Bosh::Director
         let(:runtime_config_hash) do
           {
             'releases' => [
-              { 'name' => 'runtime_release', 'version' => '2' }
+              { 'name' => 'runtime_release', 'version' => '2' },
             ],
             'addons' => [
               {
                 'name' => 'test',
                 'exclude' => {
-                  'deployments' => ['test_deployment']
+                  'deployments' => ['test_deployment'],
                 },
                 'jobs' => [{
                   'name' => 'addon_job',
-                  'release' => 'runtime_release'
-                }]
-              }
-            ]
+                  'release' => 'runtime_release',
+                }],
+              },
+            ],
           }
         end
 
@@ -627,11 +669,11 @@ module Bosh::Director
           {
             'releases' => [
               { 'name' => 'simple', 'version' => '2' },
-              { 'name' => 'hard', 'version' => 'latest' }
+              { 'name' => 'hard', 'version' => 'latest' },
             ],
             'variables' => [
               { 'name' => 'variable', 'type' => 'password' },
-              { 'name' => 'another_variable', 'type' => 'smurfs' }
+              { 'name' => 'another_variable', 'type' => 'smurfs' },
             ]
           }
         end
@@ -639,10 +681,10 @@ module Bosh::Director
         let(:runtime_config_hash) do
           {
             'releases' => [
-              { 'name' => 'simple', 'version' => '2' }
+              { 'name' => 'simple', 'version' => '2' },
             ],
             'variables' => [
-              { 'name' => 'variable', 'type' => 'password' }
+              { 'name' => 'variable', 'type' => 'password' },
             ]
           }
         end
@@ -650,7 +692,7 @@ module Bosh::Director
         it 'includes only one copy of the release in to_hash output' do
           expect(manifest_object.to_hash['releases']).to eq(
             [{ 'name' => 'simple', 'version' => '2' },
-             { 'name' => 'hard', 'version' => 'latest' }]
+             { 'name' => 'hard', 'version' => 'latest' }],
           )
         end
 

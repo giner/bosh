@@ -3,6 +3,7 @@ module Bosh::Director
     def initialize(manifest_hash, team_names)
       @manifest_hash = manifest_hash
       @team_names = team_names
+      @instance_groups = parse_instance_groups
     end
 
     def name
@@ -13,8 +14,16 @@ module Bosh::Director
       @team_names
     end
 
+    def parse_instance_groups
+      return [] if !@manifest_hash.key?('instance_groups') || !@manifest_hash['instance_groups']
+
+      @manifest_hash['instance_groups'].map do |instance_group|
+        Bosh::Director::InstanceGroupConfig.new(instance_group, @manifest_hash['stemcells'])
+      end
+    end
+
     def instance_groups
-      []
+      @instance_groups
     end
 
     def has_releases?

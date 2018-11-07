@@ -28,7 +28,7 @@ module Bosh::Director
       end
 
       def parse_variables(runtime_manifest)
-          @variable_spec_parser.parse(safe_property(runtime_manifest, 'variables', { :class => Array, :optional => true})) if @variables_spec_parser
+        @variable_spec_parser&.parse(safe_property(runtime_manifest, 'variables', class: Array, optional: true))
       end
     end
   end
